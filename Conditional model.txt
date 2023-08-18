@@ -1,0 +1,1296 @@
+SAS code：
+
+/*The maximum likelihood estimation of the exponential-baseline based model. */
+%macro expe(rep=, dataset=);  
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                                                                                                                            
+proc nlmixed data=&dataset;                                                                                                                                                                                                                              
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1*exp(a5*x))**(a2+1)*a4*exp(a6*x)/(a2+a3*T1*exp(a5*x)+a4*T2*exp(a6*x))**(a2+2));                                                                                                                       
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*exp(a6*x)*(T1*a3*exp(a5*x)+a2)**a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                             
+if censor1=1 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2+1)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                                           
+if censor1=0 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2));                                                                                                                                               
+                                                                                                                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                           
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s2",StandardError);                                                                                         
+if _n_ =2 then call symput("s3",StandardError);                                                                                         
+if _n_ =3 then call symput("s4",StandardError);                                                                                         
+if _n_ =4 then call symput("s5",StandardError);                                                                                         
+if _n_ =5 then call symput("s6",StandardError);                                                                                         
+                                                                                                                                        
+run;
+
+%if   &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0  %then      
+
+%DO;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                                                                                                                                
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1*exp(a5*x))**(a2+1)*a4*exp(a6*x)/(a2+a3*T1*exp(a5*x)+a4*T2*exp(a6*x))**(a2+2));                                                                                                                       
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*exp(a6*x)*(T1*a3*exp(a5*x)+a2)**a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                             
+if censor1=1 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2+1)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                                           
+if censor1=0 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2));                                                                                                                                               
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                           
+ods listing;
+
+%END;
+
+%ELSE  %DO;                                                                                                                       
+                                                                                                                                        
+%do i=1 %to &rep;    /*Debugging parameter initial values. */    
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+x4=2*UNIFORM(0)-1;
+x5=2*UNIFORM(0)-1;
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+call symput("x4",x4);
+call symput("x5",x5);
+run;
+
+
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                                                                                                                            
+proc nlmixed data=&dataset;           
+parms a2=&x1 a3=&x2 a4=&x3 a5=&x4 a6=&x5;                                                                                                                                                                                                                       
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1*exp(a5*x))**(a2+1)*a4*exp(a6*x)/(a2+a3*T1*exp(a5*x)+a4*T2*exp(a6*x))**(a2+2));                                                                                                                       
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*exp(a6*x)*(T1*a3*exp(a5*x)+a2)**a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                             
+if censor1=1 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2+1)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                                           
+if censor1=0 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2));                                                                                                                                               
+                                                                                                                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s2",StandardError);                                                                                         
+if _n_ =2 then call symput("s3",StandardError);                                                                                         
+if _n_ =3 then call symput("s4",StandardError);                                                                                         
+if _n_ =4 then call symput("s5",StandardError);                                                                                         
+if _n_ =5 then call symput("s6",StandardError);                                                                                         
+                                                                                                                                        
+run; 
+
+                                                                                                                  
+           %if  &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0 %then  
+%do;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;         
+parms a2=&x1 a3=&x2 a4=&x3 a5=&x4 a6=&x5;                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1*exp(a5*x))**(a2+1)*a4*exp(a6*x)/(a2+a3*T1*exp(a5*x)+a4*T2*exp(a6*x))**(a2+2));                                                                                                                       
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*exp(a6*x)*(T1*a3*exp(a5*x)+a2)**a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                             
+if censor1=1 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2+1)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2+1));                                                                                                                                           
+if censor1=0 & censor2 =0 then loglik=log((T1*a3*exp(a5*x)+a2)**(a2)/(T1*a3*exp(a5*x)+T2*a4*exp(a6*x)+a2)**(a2));                                                                                                                                               
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+ods listing;
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND; 
+
+/*The maximum likelihood value under the original hypothesis of the exponential-baseline based model. */
+%macro exht(rep=, dataset=);  
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+      
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                                
+proc nlmixed data=&dataset;                                                                                                                                                                                                               
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1)**(a2+1)*a4/(a2+a3*T1+a4*T2)**(a2+2));                                                                                                                                                               
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*(T1*a3+a2)**a2)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                     
+if censor1=1 & censor2 =0 then loglik=log((T1*a3+a2)**(a2+1)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                         
+if censor1=0 & censor2 =0 then loglik=log((T1*a3+a2)**(a2)/(T1*a3+T2*a4+a2)**(a2));                                                                                                                                                                             
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;  
+                                                                                                                                                                                                                                           
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s2",StandardError);                                                                                         
+if _n_ =2 then call symput("s3",StandardError);                                                                                         
+if _n_ =3 then call symput("s4",StandardError);                                                                                                                                                                                
+                                                                                                                                        
+run;
+
+%if   &s2>0 & &s3>0 & &s4>0  %then      
+
+%DO;
+ods output FitStatistics=estt1;                                                                                                                                                                                                                             
+proc nlmixed data=&dataset;                                                                                                                                                                                                                     
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1)**(a2+1)*a4/(a2+a3*T1+a4*T2)**(a2+2));                                                                                                                                                               
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*(T1*a3+a2)**a2)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                     
+if censor1=1 & censor2 =0 then loglik=log((T1*a3+a2)**(a2+1)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                         
+if censor1=0 & censor2 =0 then loglik=log((T1*a3+a2)**(a2)/(T1*a3+T2*a4+a2)**(a2));                                                                                                                                                                             
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                           
+ods listing;
+
+%END;
+
+%ELSE  %DO;                                                                                                                         
+                                                                                                                                        
+%do i=1 %to &rep;  /*Debugging parameter initial values. */     
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+run;
+
+
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                                
+proc nlmixed data=&dataset;  
+parms a2=&x1 a3=&x2 a4=&x3 ;                                                                                                                                                                                                              
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1)**(a2+1)*a4/(a2+a3*T1+a4*T2)**(a2+2));                                                                                                                                                               
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*(T1*a3+a2)**a2)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                     
+if censor1=1 & censor2 =0 then loglik=log((T1*a3+a2)**(a2+1)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                         
+if censor1=0 & censor2 =0 then loglik=log((T1*a3+a2)**(a2)/(T1*a3+T2*a4+a2)**(a2));                                                                                                                                                                             
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s2",StandardError);                                                                                         
+if _n_ =2 then call symput("s3",StandardError);                                                                                         
+if _n_ =3 then call symput("s4",StandardError);                                                                                                                                                                            
+                                                                                                                                        
+run; 
+
+                                                                                                                  
+           %if  &s2>0 & &s3>0 & &s4>0  %then  
+%do;
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                         
+ods output FitStatistics=estt1;                                                                                                                                                                                                                               
+proc nlmixed data=&dataset;            
+parms a2=&x1 a3=&x2 a4=&x3 ;                                                                                                                                                                                                            
+bounds a2 a3 a4 > 0;                                                                                                                                                                                                                                            
+if censor1=1 & censor2 =1 then loglik=log((a2+1)*(a2+a3*T1)**(a2+1)*a4/(a2+a3*T1+a4*T2)**(a2+2));                                                                                                                                                               
+if censor1=0 & censor2 =1 then loglik=log((a4*a2*(T1*a3+a2)**a2)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                     
+if censor1=1 & censor2 =0 then loglik=log((T1*a3+a2)**(a2+1)/(T1*a3+T2*a4+a2)**(a2+1));                                                                                                                                                                         
+if censor1=0 & censor2 =0 then loglik=log((T1*a3+a2)**(a2)/(T1*a3+T2*a4+a2)**(a2));                                                                                                                                                                             
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+ods listing;
+
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND;
+
+........................................................
+
+/*The maximum likelihood estimation of the Weibull-baseline based model. */
+%macro wepe(rep=, dataset=);  
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                                                                                                                            
+proc nlmixed data=&dataset;                                                                                                                                                                                                                               
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+exp(a6*x)*a2*T1**a4)**(a1+1)*exp(a7*x)*a3*a5*T2**(a5-1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*exp(a7*x)*a3*a5*T2**(a5-1)*(a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**(a1+1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                            
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                  
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                         
+if _n_ =6 then call symput("s6",StandardError); 
+if _n_ =7 then call symput("s7",StandardError);                                                                                                                                         
+run;
+
+%if   &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0  & &s7>0 %then    
+
+%DO;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+exp(a6*x)*a2*T1**a4)**(a1+1)*exp(a7*x)*a3*a5*T2**(a5-1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*exp(a7*x)*a3*a5*T2**(a5-1)*(a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**(a1+1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                        
+ods listing;
+
+
+%END;
+
+%ELSE  %DO;                                                                                                                        
+                                                                                                                                        
+%do i=1 %to &rep;    /*Debugging parameter initial values. */    
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+x4=2*UNIFORM(0);
+x5=2*UNIFORM(0);
+x6=2*UNIFORM(0)-1;
+x7=2*UNIFORM(0)-1;
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+call symput("x4",x4);
+call symput("x5",x5);
+call symput("x6",x6);
+call symput("x7",x7);
+run;
+
+
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                                                                                                                            
+proc nlmixed data=&dataset;           
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 a6=&x6 a7=&x7;                                                                                                                                                                                                                       
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+exp(a6*x)*a2*T1**a4)**(a1+1)*exp(a7*x)*a3*a5*T2**(a5-1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*exp(a7*x)*a3*a5*T2**(a5-1)*(a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**(a1+1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                            
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                         
+if _n_ =6 then call symput("s6",StandardError); 
+if _n_ =7 then call symput("s7",StandardError);                                                                                       
+                                                                                                                                        
+run; 
+
+                                                                                                                  
+           %if  &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0 & &s7>0 %then 
+%do;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;         
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 a6=&x6 a7=&x7;                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+exp(a6*x)*a2*T1**a4)**(a1+1)*exp(a7*x)*a3*a5*T2**(a5-1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*exp(a7*x)*a3*a5*T2**(a5-1)*(a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**(a1+1)/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+exp(a6*x)*a2*T1**a4)**a1/(a1+exp(a6*x)*a2*T1**a4+exp(a7*x)*a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                       
+ods listing;
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND;
+
+
+/*The maximum likelihood value under the original hypothesis of the Weibull-baseline based model. */
+%macro weht(rep=, dataset=);  
+ods listing close;
+
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;                                                                                                                                                                                                             
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+a2*T1**a4)**(a1+1)*a3*a5*T2**(a5-1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*a3*a5*T2**(a5-1)*(a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+a2*T1**a4)**(a1+1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;  
+
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                                                                                                                                                              
+run;
+
+%if   &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0  %then      
+
+%DO;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=estt1;                                                                                                                                                                                                                               
+proc nlmixed data=&dataset;                                                                                                                                                                                                              
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+a2*T1**a4)**(a1+1)*a3*a5*T2**(a5-1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*a3*a5*T2**(a5-1)*(a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+a2*T1**a4)**(a1+1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                        
+ods listing;
+
+
+%END;
+
+%ELSE  %DO;                                                                                                                         
+                                                                                                                                        
+%do i=1 %to &rep;   /*Debugging parameter initial values. */     
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+x4=2*UNIFORM(0);
+x5=2*UNIFORM(0);
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+call symput("x4",x4);
+call symput("x5",x5);
+run;
+
+
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                               
+proc nlmixed data=&dataset;            
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 ;                                                                                                                                                                                                     
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+a2*T1**a4)**(a1+1)*a3*a5*T2**(a5-1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*a3*a5*T2**(a5-1)*(a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+a2*T1**a4)**(a1+1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                                                                                                              
+                                                                                                                                        
+run; 
+
+                                                                                                                  
+           %if  &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 %then  
+%do;
+ods listing close;         
+                                                                                                                                                                                                                                     
+ods output FitStatistics=estt1;                                                                                                                                                                                                                                
+proc nlmixed data=&dataset;            
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5;                                                                                                                                                                                                      
+bounds a1 a2 a3 a4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 then loglik=log((a1+1)*(a1+a2*T1**a4)**(a1+1)*a3*a5*T2**(a5-1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+2));
+if censor1=0 & censor2 =1 then loglik=log(a1*a3*a5*T2**(a5-1)*(a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));
+if censor1=1 & censor2 =0 then loglik=log((a1+a2*T1**a4)**(a1+1)/(a1+a2*T1**a4+a3*T2**a5)**(a1+1));                         
+if censor1=0 & censor2 =0 then loglik=log((a1+a2*T1**a4)**a1/(a1+a2*T1**a4+a3*T2**a5)**(a1));           
+                                                                                                                                                                                                                                                                
+model T2 ~ general(loglik);                                                                                                                                                                                                                                     
+run;                                                                                                                                                                                                                                                               
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                       
+ods listing;
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND;
+
+
+...................................................
+
+/*The maximum likelihood estimation of the piecewise-exponential-baseline based model. (The endpoints of the four intervals are respectively the 25% quantile, median and 75% quantile of t1 and the 25% quantile, median and 75% quantile of t2, which are denoted by Q1, Q2, Q3, P1, P2 and P3  respectively)*/
+%macro pepe(rep=, dataset=);  
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                         
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                           
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1*exp(a6*x))**(a5)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                  
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                         
+if _n_ =6 then call symput("s6",StandardError); 
+if _n_ =7 then call symput("s7",StandardError);   
+if _n_ =8 then call symput("s8",StandardError); 
+if _n_ =9 then call symput("s9",StandardError);
+if _n_ =10 then call symput("s10",StandardError); 
+if _n_ =11 then call symput("s11",StandardError);                                                                                                                                         
+run;
+
+%if   &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0  & &s7>0 &  &s8>0  & &s9>0 &  &s10>0  & &s11>0 %then     
+
+%DO;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                       
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                           
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1*exp(a6*x))**(a5)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                        
+ods listing;
+
+
+%END;
+
+%ELSE  %DO;                                                                                                                        
+                                                                                                                                        
+%do i=1 %to &rep;       /*Debugging parameter initial values. */
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+x4=2*UNIFORM(0);
+x5=2*UNIFORM(0);
+x6=2*UNIFORM(0)-1;
+x7=2*UNIFORM(0)-1;
+x8=2*UNIFORM(0);
+x9=2*UNIFORM(0);
+x10=2*UNIFORM(0);
+x11=2*UNIFORM(0);
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+call symput("x4",x4);
+call symput("x5",x5);
+call symput("x6",x6);
+call symput("x7",x7);
+call symput("x8",x8);
+call symput("x9",x9);
+call symput("x10",x10);
+call symput("x11",x11);
+run;
+
+
+ods listing close;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+ods output ParameterEstimates=PE1;                                                                                                                          
+proc nlmixed data=&dataset;
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 b1=&x8 b2=&x9 b3=&x10 b4=&x11 a6=&x6 a7=&x7;                                                                                                                                                                                                               
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1*exp(a6*x))**(a5)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                             
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pe1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                         
+if _n_ =6 then call symput("s6",StandardError); 
+if _n_ =7 then call symput("s7",StandardError);
+if _n_ =8 then call symput("s8",StandardError); 
+if _n_ =9 then call symput("s9",StandardError);                                                                                          
+if _n_ =10 then call symput("s10",StandardError); 
+if _n_ =11 then call symput("s11",StandardError);                                                                                                                                       
+run; 
+
+                                                                                                                  
+           %if  &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 &  &s6>0 & &s7>0 &  &s8>0 & &s9>0 &  &s10>0 & &s11>0 %then  
+%do;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=est1;                                                                                                                          
+proc nlmixed data=&dataset;
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 b1=&x8 b2=&x9 b3=&x10 b4=&x11 a6=&x6 a7=&x7;                                                                                                                                                                                                                                                                            
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1*exp(a6*x))**(a5)*exp(a7*x)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)*exp(a7*x)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*exp(a7*x)*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5+1)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1*exp(a6*x))**(a5)/(a5+a1*T1*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(T1-q1))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+b1*T2*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(T2-p1))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(T2-p2))*exp(a7*x))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))*exp(a6*x)+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3))*exp(a7*x))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                           
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                       
+ods listing;
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND;
+
+                                                                                                                                                                                                                                                      
+/*The maximum likelihood value under the original hypothesis of the piecewise-exponential-baseline based model. */
+%macro peht(rep=, dataset=);  
+ods listing close;
+
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                           
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;  
+
+ods listing;                                                                                                                                                                                                                                                    
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);  
+if _n_ =6 then call symput("s6",StandardError);                                                                                         
+if _n_ =7 then call symput("s7",StandardError);  
+if _n_ =8 then call symput("s8",StandardError);                                                                                         
+if _n_ =9 then call symput("s9",StandardError);                                                                                                                                                                                                                            
+run;
+
+%if   &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0  & &s6>0 & &s7>0 & &s8>0 & &s9>0 %then      
+
+%DO;
+ods listing close;                                                                                                                                                                                                                                              
+ods output FitStatistics=estt1;                                                                                                                                                                                                                             
+proc nlmixed data=&dataset;                                                                                                                                                                                                                                                                           
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                        
+ods listing;
+
+
+%END;
+
+%ELSE  %DO;                                                                                                                         
+                                                                                                                                        
+%do i=1 %to &rep;  /*Debugging parameter initial values. */     
+
+data _null_;
+x1=2*UNIFORM(0);
+x2=2*UNIFORM(0);
+x3=2*UNIFORM(0);
+x4=2*UNIFORM(0);
+x5=2*UNIFORM(0);
+x6=2*UNIFORM(0);
+x7=2*UNIFORM(0);
+x8=2*UNIFORM(0);
+x9=2*UNIFORM(0);
+call symput("x1",x1);
+call symput("x2",x2);
+call symput("x3",x3);
+call symput("x4",x4);
+call symput("x5",x5);
+call symput("x6",x6);
+call symput("x7",x7);
+call symput("x8",x8);
+call symput("x9",x9);
+run;
+
+
+ods output ParameterEstimates=pee1;                                                                                                                                                                                                                               
+proc nlmixed data=&dataset;            
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 b1=&x6 b2=&x7 b3=&x8 b4=&x9;                                                                                                                                                   
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                                                  
+ods listing;  
+
+data _null_;                                                                                                                            
+set pee1;                                                                                                                                
+if _n_ =1 then call symput("s1",StandardError);                                                                                         
+if _n_ =2 then call symput("s2",StandardError);                                                                                         
+if _n_ =3 then call symput("s3",StandardError);                                                                                         
+if _n_ =4 then call symput("s4",StandardError);                                                                                         
+if _n_ =5 then call symput("s5",StandardError);                                                                                                                                                                              
+if _n_ =6 then call symput("s6",StandardError);                                                                                         
+if _n_ =7 then call symput("s7",StandardError);  
+if _n_ =8 then call symput("s8",StandardError);                                                                                         
+if _n_ =9 then call symput("s9",StandardError);                                                                                                                                       
+run; 
+
+                                                                                                                  
+           %if  &s1>0 & &s2>0 & &s3>0 & &s4>0 & &s5>0 & &s6>0 & &s7>0  & &s8>0 & &s9>0 %then  
+%do;
+ods listing close;         
+                                                                                                                                                                                                                                     
+ods output FitStatistics=estt1;                                                                                                                                                                                                                                 
+proc nlmixed data=&dataset;            
+parms a1=&x1 a2=&x2 a3=&x3 a4=&x4 a5=&x5 b1=&x6 b2=&x7 b3=&x8 b4=&x9;                                                                                                                                                                                                            
+bounds a1 a2 a3 a4 b1 b2 b3 b4 a5> 0;                                                                                                                                 
+if censor1=1 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+2));
+if censor1=1 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5+1)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+2));
+
+if censor1=0 & censor2 =1 & T1<q1 & T2<p1 then loglik=log(b1*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & T1<q1 & p3<=T2 then loglik=log(b4*(a5)*(a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q1<=T1<q2 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q2<=T1<q3 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & T2<p1 then loglik=log(b1*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p1<=T2<p2 then loglik=log(b2*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p2<=T2<p3 then loglik=log(b3*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=0 & censor2 =1 & q3<=T1 & p3<=T2 then loglik=log(b4*(a5)*(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+
+if censor1=1 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5+1)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5+1)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5+1));
+if censor1=1 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5+1)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5+1));
+                     
+if censor1=0 & censor2 =0 & T1<q1 & T2<p1 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p1<=T2<p2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p2<=T2<p3 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & T1<q1 & p3<=T2 then loglik=log((a5+a1*T1)**(a5)/(a5+a1*T1+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & T2<p1 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q1<=T1<q2 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(T1-q1)))**(a5)/(a5+(a1*q1+a2*(T1-q1))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q2<=T1<q3 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(T1-q2))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & T2<p1 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+b1*T2)**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p1<=T2<p2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(T2-p1)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p2<=T2<p3 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(T2-p2)))**(a5));
+if censor1=0 & censor2 =0 & q3<=T1 & p3<=T2 then loglik=log((a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3)))**(a5)/(a5+(a1*q1+a2*(q2-q1)+a3*(q3-q2)+a4*(T1-q3))+(p1*b1+b2*(p2-p1)+b3*(p3-p2)+b4*(T2-p3)))**(a5));
+                                                                                                                                                             
+model T2 ~ general(loglik);                                                                                                                                  
+run;                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                       
+ods listing;
+
+%goto EndMacro;                                                                                           
+
+%end; 
+
+                                                                                                                              
+                                                                                                                                        
+%end;   
+                                                                                                                                
+%EndMacro:;
+                                                                                                                                 
+
+
+%END;
+
+%MEND;
+
+
+........................................................
