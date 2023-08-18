@@ -1,0 +1,20 @@
+First, download the German breast cancer dataset in: https://onlinelibrary.wiley.com/doi/10.1002/sim.9589 (Supporting Information). For file "gbcs", using the first occurrence as the baseline ("start"), designate the second occurrence ("recdate"-"start") as T1, and mark death ("deathdate"-"start") as T2. The indicators for censoring are denoted by censrec and censdead. The variables in consideration include "age", "menopause", "hormone", "size", "grade", "nodes", "prog_recp", and "estrg_recp". Importing data into SAS, in this example, we consider a dataset ml1 which includes survival data T1 ("recdate"-"start"), T2 ("deathdate"-"start"), censor1 (censrec), censor2 (censdead), x (menopause). 
+
+SAS code：
+
+%expe(rep=1000, dataset=ml1);/*The result data sets pe1 and est1 are parameter estimation and maximum likelihood value of the exponential-baseline based model respectively. */
+%exht(rep=1000, dataset=ml1);/*The result data set estt1 is the original hypothesis maximum likelihood value. */
+
+........................................................
+ 
+%wepe(rep=1000, dataset=ml1); /*The result data sets pe1 and est1 are parameter estimation and maximum likelihood value of the Weibull-baseline based model respectively. */
+%weht(rep=1000, dataset=ml1); /*The result data set estt1 is the original hypothesis maximum likelihood value. */
+
+...................................................
+
+%pepe(rep=1000, dataset=ml1); /*The result data sets pe1 and est1 are parameter estimation and maximum likelihood value of the piecewise-exponential-baseline based model respectively. */
+%peht(rep=1000, dataset=ml1); /*The result data set estt1 is the original hypothesis maximum likelihood value. */
+
+
+
+........................................................
