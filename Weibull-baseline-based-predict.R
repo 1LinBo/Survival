@@ -39,7 +39,7 @@ T2 = train_data$OS.time  # OS time
 event2 = train_data$OS  # OS event status
 
 # Set the number of random initializations for optimization(in order to quickly out of the result Set to 5 actually should be Set as larger as possible)
-Randomize_num = 5
+Randomize_num = 5
 
 # Define a function to calculate the negative log-likelihood for the Weibull model
 Weibull_predict = function(y) {
