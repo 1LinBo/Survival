@@ -1,29 +1,29 @@
 library(survival)  # Load the survival package for survival analysis
 
-# Read the data file "GBMLGG.txt", which is tab-separated, with the first row as the header
-final = read.table("GBMLGG.txt", sep = "\t", header = TRUE)
+# Read the data file "LUNG.txt", which is tab-separated, with the first row as the header
+final = read.table("LUNG.txt", sep = "\t", header = TRUE)
 
 # Cox Model 1
 # Fit a Cox proportional hazards model using overall survival time (OS.time) and event status (OS)
-# The model includes 'WNT' as a predictor
-tes = coxph(Surv(OS.time, OS) ~ WNT, data = final)
+# The model includes 'P53' as a predictor
+tes = coxph(Surv(OS.time, OS) ~ P53, data = final)
 
 # Print the summary of the Cox model, focusing on the coefficients
 summary(tes)$coefficients
 
 # Cox Model 2
-# Fit a Cox proportional hazards model including 'WNT' and the logarithm of progression-free interval (PFI) time
-tes = coxph(Surv(OS.time, OS) ~ WNT + log(final$PFI.time), data = final)
+# Fit a Cox proportional hazards model including 'P53' and the logarithm of progression-free interval (PFI) time
+tes = coxph(Surv(OS.time, OS) ~ P53 + log(final$PFI.time), data = final)
 
-# Print the summary of the Cox model and extract the first coefficient (WNT)
+# Print the summary of the Cox model and extract the first coefficient (P53)
 summary(tes)$coefficients[1, ]
 
 # Cox Time-Dependent Model
-# Create a data frame for the Cox model with the survival time, event status, 'WNT', and logarithm of PFI time
+# Create a data frame for the Cox model with the survival time, event status, 'P53', and logarithm of PFI time
 data1 <- data.frame(
   OS.time = final$OS.time,  # Overall survival time
   OS = final$OS,  # Overall survival event status
-  X = final$WNT,  # 'WNT' predictor variable
+  X = final$P53,  # 'P53' predictor variable
   log_PFI_time = log(final$PFI.time)  # Logarithm of PFI time
 )
 
@@ -52,15 +52,15 @@ cox.zph(fit2)
 summary(fit2)$coefficients[1, ]
 
 # Weibull Regression Model 1
-# Fit a Weibull regression model using 'WNT' as a predictor
-tes = survreg(Surv(OS.time, OS) ~ WNT, dist = "weibull", data = final)
+# Fit a Weibull regression model using 'P53' as a predictor
+tes = survreg(Surv(OS.time, OS) ~ P53, dist = "weibull", data = final)
 
-# Print the summary of the Weibull model, focusing on the coefficient of 'WNT'
+# Print the summary of the Weibull model, focusing on the coefficient of 'P53'
 summary(tes)$table[2, ]
 
 # Weibull Regression Model 2
-# Fit a Weibull regression model including 'WNT' and the logarithm of PFI time
-tes = survreg(Surv(OS.time, OS) ~ WNT + log(final$PFI.time), dist = "weibull", data = final)
+# Fit a Weibull regression model including 'P53' and the logarithm of PFI time
+tes = survreg(Surv(OS.time, OS) ~ P53 + log(final$PFI.time), dist = "weibull", data = final)
 
-# Print the summary of the Weibull model, focusing on the coefficient of 'WNT'
+# Print the summary of the Weibull model, focusing on the coefficient of 'P53'
 summary(tes)$table[2, ]

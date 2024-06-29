@@ -1,7 +1,7 @@
-# Read the data file "GBMLGG.txt", which is tab-separated, with the first row as the header
-data=read.table("GBMLGG.txt", sep = "\t", header = TRUE)
+# Read the data file "LUNG.txt", which is tab-separated, with the first row as the header
+data=read.table("LUNG.txt", sep = "\t", header = TRUE)
 
-set.seed(123)  # Set the random seed for reproducibility
+set.seed(111)  # Set the random seed for reproducibility
 
 # Set the number of random initializations for optimization(in order to quickly out of the result Set to 20 actually should be Set as larger as possible)
 Randomize_num = 20
@@ -101,7 +101,13 @@ Exponential_LRT = function (T1, event1, T2, event2, X){
 
 para1=NULL
 
-tes=Exponential_LRT(T1=data$PFI.time,event1=data$PFI,T2=data$OS.time,event2=data$OS,X=data$WNT)
+repeat{
+	tes=Exponential_LRT(T1=data$PFI.time,event1=data$PFI,T2=data$OS.time,event2=data$OS,X=data$P53)
+	if(tes[1]>=0){
+		break
+	}
+}
+
 	P1=1-pchisq(tes[1],df=2)
 	beta1=tes[5]
 	beta2=tes[6]
@@ -129,7 +135,7 @@ print(para1)
 print(mono1)
 
 
-set.seed(123)  # Set the random seed for reproducibility
+set.seed(111)  # Set the random seed for reproducibility
 
 # Set the number of random initializations for optimization(in order to quickly out of the result Set to 20 actually should be Set as larger as possible)
 Randomize_num = 20
@@ -232,7 +238,14 @@ Weibull_LRT = function (T1, event1, T2, event2, X){
 }
 
 para2=NULL
-tes= Weibull_LRT(T1=data$PFI.time,event1=data$PFI,T2=data$OS.time,event2=data$OS,X=data$WNT)
+
+repeat{
+	tes= Weibull_LRT(T1=data$PFI.time,event1=data$PFI,T2=data$OS.time,event2=data$OS,X=data$P53)
+	if(tes[1]>=0){
+		break
+	}
+}
+
 	P2=1-pchisq(tes[1],df=2)
 	beta1=tes[7]
 	beta2=tes[8]
