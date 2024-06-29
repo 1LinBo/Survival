@@ -1,7 +1,7 @@
 library(survival)
 
 
-mydata=read.table("GBMLGG.txt", sep = "\t", header = TRUE)
+mydata=read.table("LUNG.txt", sep = "\t", header = TRUE)
 mydata$T1=mydata$PFI.time
 mydata$T2=mydata$OS.time
 mydata$censor1=mydata$PFI
