@@ -1,10 +1,10 @@
 library(timeROC)  # Load the timeROC package for time-dependent ROC curve analysis
 library(survival)  # Load the survival package for survival analysis
 
-set.seed(123)  # Set the random seed for reproducibility
+set.seed(111)  # Set the random seed for reproducibility
 
-# Read the data file "GBMLGG.txt", which is tab-separated, with the first row as the header
-df = read.table("GBMLGG.txt", sep = "\t", header = TRUE)
+# Read the data file "LUNG.txt", which is tab-separated, with the first row as the header
+df = read.table("LUNG.txt", sep = "\t", header = TRUE)
 
 # Extract the variable names from the second to the fifteenth columns
 predict_variable = colnames(df)[2:15]
@@ -13,8 +13,8 @@ predict_variable  # Print the variable names
 # Get the number of rows in the data frame
 n <- nrow(df)
 
-# Randomly select 60% of the data as the training set
-train_indices <- sample(1:n, size = 0.6 * n)
+# Randomly select 65% of the data as the training set
+train_indices <- sample(1:n, size = 0.65 * n)
 
 # Split the data into training and testing sets based on the indices
 train_data <- df[train_indices, ]  # Training data
@@ -38,8 +38,8 @@ event1 = train_data$PFI  # PFI event status
 T2 = train_data$OS.time  # OS time
 event2 = train_data$OS  # OS event status
 
-# Set the number of random initializations for optimization(in order to quickly out of the result Set to 5 actually should be Set as larger as possible)
-Randomize_num = 5
+# Set the number of random initializations for optimization(in order to quickly out of the result Set to 20 actually should be Set as larger as possible)
+Randomize_num = 20
 
 # Define a function to calculate the negative log-likelihood for the Exponential model
 Exponential_predict = function(y) {
