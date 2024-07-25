@@ -41,7 +41,7 @@ plot(zp[2])
 # The `cut` parameter specifies the time points at which the data is split
 data1_group = survSplit(Surv(OS.time, OS) ~ ., data = data1, episode = "tgroup", cut = c(580, 1200))
 
-# Fit a Cox model with time-dependent covariates, using the split data
+# Fit a Cox model with time-dependent coefficients, using the split data
 fit2 = coxph(Surv(tstart, OS.time, OS) ~ X + log_PFI_time:strata(tgroup), data = data1_group)
 fit2  # Print the model summary
 
