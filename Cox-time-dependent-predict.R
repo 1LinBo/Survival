@@ -51,12 +51,13 @@ plot(zp[15])
 
 # Split the training data into time intervals for time-dependent analysis
 # The `cut` parameter specifies the time points at which the data is split
-train_group = survSplit(Surv(OS.time, OS) ~ ., data = train, episode = "tgroup", cut = c(590, 1150))
+train_group = survSplit(Surv(OS.time, OS) ~ ., data = train, episode = "tgroup", cut = c(590, 1200))
 
-# Fit a Cox model with time-dependent covariates, using the split training data
+# Fit a Cox model with time-dependent coefficients, using the split training data
 fit2 = coxph(Surv(tstart, OS.time, OS) ~ X1 + X2 + X3 + X4 + X5 + X6 + X7 + X8 + X9 + X10 + X11 + X12 + X13 + X14 + 
              log_PFI_time:strata(tgroup), data = train_group)
 fit2  # Print the model summary
+
 
 # Test the proportional hazards assumption for the time-dependent Cox model
 cox.zph(fit2)
