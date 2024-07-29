@@ -89,7 +89,7 @@ test <- data.frame(
 )
 
 # Split the test data into time intervals for time-dependent analysis
-test_group = survSplit(Surv(OS.time, OS) ~ ., data = test, episode = "tgroup", cut = c(590, 1150))
+test_group = survSplit(Surv(OS.time, OS) ~ ., data = test, episode = "tgroup", cut = c(590, 1200))
 
 # Predict the risk scores for the test data using the time-dependent Cox model
 test_predict <- data.frame(
